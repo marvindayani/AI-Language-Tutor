@@ -78,6 +78,8 @@ export const generateAssessment = async (req, res) => {
       sessionIds: lastSessions.map(s => s._id)
     });
 
+    console.log(newAssessment);
+
     await newAssessment.save();
     res.status(201).json({ assessment: newAssessment });
   } catch (error) {
