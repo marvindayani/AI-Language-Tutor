@@ -1,14 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply m-0 bg-gray-50 text-gray-900;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
+    @apply m-0 bg-[#F8FAFC] text-slate-900;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .talkpal-card {
+    @apply bg-white rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1;
+  }
+
+  .talkpal-button-primary {
+    @apply px-6 py-3 bg-[#1421AC] text-white rounded-2xl font-bold font-semibold shadow-lg shadow-blue-900/20 hover:bg-[#0E178C] transition-all active:scale-95;
+  }
+
+  .talkpal-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#1421AC] to-[#4F46E5];
+  }
+
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-2xl;
   }
 }
