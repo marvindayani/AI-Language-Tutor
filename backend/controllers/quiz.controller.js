@@ -1,24 +1,25 @@
 import Quiz from '../models/Quiz.js';
 import User from '../models/User.js';
 import { generateGrammarQuiz } from '../services/ai.service.js';
-import { updateStreak, checkBadges } from '../utils/gamification.js'; // ✅ Added
+import { updateStreak, checkBadges } from '../utils/gamification.js';
+import { checkLevelUnlock } from './learning.controller.js';
 
 export const createQuiz = async (req, res) => {
   try {
-    const { language, level } = req.body;
+    const { language, level, focusRule, previousMistakes } = req.body;
     const userId = req.user.id;
-    const questions = await generateGrammarQuiz(language, level);
+    const questions = await generateGrammarQuiz(language, level, focusRule, previousMistakes);
     
     const quiz = new Quiz({
       userId,
       language,
       level,
-      questions
+      questions,
+      targetRule: focusRule || null,
+      mistakes: []
     });
     await quiz.save();
     
-    // We send back questions without the answers to the frontend to prevent cheating if necessary
-    // But for a simple app it's fine. We'll send it entirely so React can validate instantly without more API calls.
     res.status(201).json({ quiz });
   } catch(error) {
     res.status(500).json({ error: error.message });
@@ -27,19 +28,36 @@ export const createQuiz = async (req, res) => {
 
 export const submitQuiz = async (req, res) => {
   try {
-    const { quizId, score, totalQuestions, correctAnswers } = req.body;
+    const { quizId, score, totalQuestions, correctAnswers, mistakesData } = req.body;
     
     const quiz = await Quiz.findById(quizId);
     if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
     
     quiz.score = score;
     quiz.completed = true;
+    if (mistakesData) quiz.mistakes = mistakesData;
     await quiz.save();
 
     // Update user performance
     const user = await User.findById(quiz.userId);
     user.quizzesTaken += 1;
     user.performanceScore += score * 10;
+
+    // Strict Mastery Logic: Topic is 100% complete ONLY if quiz score is 100%
+    if (quiz.targetRule && typeof totalQuestions === 'number' && typeof correctAnswers === 'number') {
+      const focusArea = user.focusAreas?.find(fa => fa.rule === quiz.targetRule && fa.language === quiz.language);
+      if (focusArea) {
+        if (score === 100) {
+          focusArea.masteryScore = 100;
+          focusArea.isFocused = false; // "Graduated"
+        } else {
+          // If not 100, we don't advance to 100%. 
+          // We can still give a small boost for high scores, but not "Completion"
+          const boost = score >= 80 ? 5 : (score >= 60 ? 2 : 0);
+          focusArea.masteryScore = Math.min(99, (focusArea.masteryScore || 0) + boost);
+        }
+      }
+    }
 
     // --- Accuracy tracking ---
     // totalQuestions & correctAnswers come from the frontend quiz submission
@@ -53,13 +71,12 @@ export const submitQuiz = async (req, res) => {
         : 0;
     }
 
-    // ✅ NEW: Update Gamification (Streaks & Badges)
-    updateStreak(user);
-    checkBadges(user);
+    // ✅ Check for Level Unlock!
+    const unlockStatus = await checkLevelUnlock(user._id);
 
     await user.save();
 
-    res.status(200).json({ quiz, user });
+    res.status(200).json({ quiz, user, unlockStatus });
   } catch(error) {
     res.status(500).json({ error: error.message });
   }

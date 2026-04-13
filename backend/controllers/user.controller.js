@@ -93,3 +93,18 @@ export const getLeaderboard = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const updateSettings = async (req, res) => {
+  try {
+    const { language, level } = req.body;
+    const user = await User.findById(req.user.id);
+    
+    if (language) user.language = language;
+    if (level) user.level = level;
+    
+    await user.save();
+    res.status(200).json({ user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
