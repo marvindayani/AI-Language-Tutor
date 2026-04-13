@@ -5,10 +5,11 @@ import Quiz from '../models/Quiz.js';
 import Assessment from '../models/Assessment.js';
 import { generateTutorResponse, generateSessionSummary, generateCEFRAssessment } from '../services/ai.service.js';
 import { updateStreak, checkBadges } from '../utils/gamification.js';
+import { checkLevelUnlock } from './learning.controller.js';
 
 export const startSession = async (req, res) => {
   try {
-    const { language, level, scenario } = req.body;
+    const { language, level, scenario, focusRule } = req.body;
     const userId = req.user.id;
     
     let user = await User.findById(userId);
@@ -23,6 +24,7 @@ export const startSession = async (req, res) => {
       language,
       level,
       scenario: scenario || null,
+      focusRule: focusRule || null,
       isActive: true
     });
     await session.save();
@@ -56,7 +58,7 @@ export const sendMessage = async (req, res) => {
     }));
 
     // Generate AI response
-    const aiData = await generateTutorResponse(session.language, session.level, chatHistory, text, session.scenario);
+    const aiData = await generateTutorResponse(session.language, session.level, chatHistory, text, session.scenario, session.focusRule);
 
     // Save AI response
     const aiMessage = new Message({
@@ -132,6 +134,19 @@ export const endSession = async (req, res) => {
           ? Math.round((user.totalCorrectAnswers / user.totalQuestionsAnswered) * 1000) / 10
           : 0;
       }
+
+      // --- Mastery Tracking for Focus Rule Sessions ---
+      if (session.focusRule) {
+        const focusArea = user.focusAreas?.find(fa => fa.rule === session.focusRule);
+        if (focusArea && totalAttempts > 0) {
+          const accuracy = (correctAttempts / totalAttempts) * 100;
+          const masteryDelta = accuracy >= 80 ? 15 : (accuracy >= 60 ? 5 : -5);
+          focusArea.masteryScore = Math.min(100, Math.max(0, (focusArea.masteryScore || 0) + masteryDelta));
+        }
+      }
+
+      // ✅ Check for Level Unlock!
+      await checkLevelUnlock(user._id);
 
       // ✅ NEW: Update Gamification (Streaks & Badges)
       updateStreak(user);
