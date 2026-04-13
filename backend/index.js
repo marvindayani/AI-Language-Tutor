@@ -7,7 +7,7 @@ import userRoutes from './routes/user.js';
 import quizRoutes from './routes/quiz.js';
 import authRoutes from './routes/auth.js';
 import assessmentRoutes from './routes/assessment.js';
-
+import learningRoutes from './routes/learning.routes.js';
 
 
 
@@ -23,6 +23,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/assessment', assessmentRoutes);
+app.use('/api/learning', learningRoutes);
 
 // Error Default Route
 app.use((err, req, res, next) => {
