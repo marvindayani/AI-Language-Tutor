@@ -5,6 +5,7 @@ const sessionSchema = new mongoose.Schema({
   language: { type: String, required: true },
   level: { type: String, required: true, enum: ['beginner', 'intermediate', 'advanced'] },
   scenario: { type: String, default: null }, // Used for Immersive Roleplay Mode
+  focusRule: { type: String, default: null }, // Specific grammar focus for the session
   summary: {
     mistakes: [String],
     vocabulary: [String],

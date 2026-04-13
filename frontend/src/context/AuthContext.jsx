@@ -45,8 +45,23 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
   };
 
+  const refreshUser = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('http://localhost:5000/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUser(data.user);
+      }
+    } catch (err) {
+      console.error("Refresh user error:", err);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, loginUser, logoutUser }}>
+    <AuthContext.Provider value={{ user, token, loading, loginUser, logoutUser, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

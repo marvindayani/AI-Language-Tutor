@@ -15,11 +15,23 @@ const userSchema = new mongoose.Schema({
   streakCount: { type: Number, default: 0 },
   lastActivityDate: { type: Date, default: null },
   highestStreak: { type: Number, default: 0 },
-  badges: [{ 
-    name: String, 
-    icon: String, 
-    description: String, 
-    dateEarned: { type: Date, default: Date.now } 
+  currentLevel: { type: Number, default: 1 }, // Legacy field, keeping for compatibility
+  languageLevels: { type: Map, of: Number, default: {} }, // Tracks current level per language
+  badges: [{
+    name: String,
+    icon: String,
+    description: String,
+    dateEarned: { type: Date, default: Date.now }
+  }],
+  focusAreas: [{
+    rule: String, // Technical name for AI consistency (in English)
+    displayName: String, // Localized name for UI (e.g. Hindi script)
+    displayDescription: String, // Localized description for UI
+    language: { type: String, default: 'English' },
+    level: { type: Number, default: 0 },
+    masteryScore: { type: Number, default: 0 },
+    isFocused: { type: Boolean, default: true },
+    addedAt: { type: Date, default: Date.now }
   }]
 }, { timestamps: true });
 

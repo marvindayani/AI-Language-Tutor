@@ -11,6 +11,7 @@ import VoiceSession from './pages/VoiceSession.jsx';
 import Progress from './pages/Progress.jsx';
 import LevelReport from './pages/LevelReport.jsx';
 import Leaderboard from './pages/Leaderboard.jsx';
+import LearningHub from './pages/LearningHub.jsx';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/level-report" element={<ProtectedRoute><LevelReport /></ProtectedRoute>} />
           <Route path="/assessment/:id" element={<ProtectedRoute><LevelReport /></ProtectedRoute>} />
           <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+          <Route path="/learning-hub" element={<ProtectedRoute><LearningHub /></ProtectedRoute>} />
         </Routes>
       </Router>
     </AuthProvider>
