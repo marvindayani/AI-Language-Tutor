@@ -1,25 +1,117 @@
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
-dotenv.config();
+import { fetchGroq, fetchMistral, fetchCerebras, fetchCohere } from "./aiProviders.js";
 
+dotenv.config();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const getSystemPrompt = (language, level, scenario) => {
-  const persona = scenario
-    ? `You are a native speaker of ${language}. You are engaging the user in a realistic roleplay scenario: "${scenario}". Your job is to act naturally according to the context of this scenario (e.g., barista, interviewer, fellow traveler). Do not break character unless absolutely necessary.`
-    : `You are an AI Language Tutor designed to help users learn a new language through real conversation.`;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Universal helper to call AI models with automatic retries and multi-provider fallback waterfall.
+ */
+const fallbackChain = [
+  { provider: "gemini", model: "gemini-2.5-flash" },
+  { provider: "groq", model: "llama-3.3-70b-versatile" },
+  { provider: "mistral", model: "mistral-large-latest" },
+  { provider: "cerebras", model: "llama3.1-70b" },
+  { provider: "cohere", model: "command-r-plus" },
+  // Last resort
+  { provider: "gemini", model: "gemini-2.0-flash" }
+];
+
+const callProvider = async (providerInfo, contents, config) => {
+  const { provider, model } = providerInfo;
+  switch (provider) {
+    case "gemini":
+      const genModel = ai.getGenerativeModel({ model });
+      const result = await genModel.generateContent({
+        contents,
+        generationConfig: config
+      });
+      return { text: result.response.text() };
+    case "groq":
+      if (!process.env.GROQ_API_KEY) throw new Error("not configured");
+      return await fetchGroq(model, contents, config);
+    case "mistral":
+      if (!process.env.MISTRAL_API_KEY) throw new Error("not configured");
+      return await fetchMistral(model, contents, config);
+    case "cerebras":
+      if (!process.env.CEREBRAS_API_KEY) throw new Error("not configured");
+      return await fetchCerebras(model, contents, config);
+    case "cohere":
+      if (!process.env.COHERE_API_KEY) throw new Error("not configured");
+      return await fetchCohere(model, contents, config);
+    default:
+      throw new Error(`Unknown provider: ${provider}`);
+  }
+};
+
+const safeGenerateContent = async (modelName, contents, config, retries = 2) => {
+  let lastError;
+
+  // Find the starting point in the chain based on the requested model
+  const startIndex = Math.max(0, fallbackChain.findIndex(c => c.model === modelName));
+  const chainToTry = fallbackChain.slice(startIndex);
+
+  for (const providerInfo of chainToTry) {
+    // Only retry transient errors heavily for the primary provider
+    const providerRetries = providerInfo.provider === "gemini" ? retries : 1;
+
+    for (let i = 0; i < providerRetries; i++) {
+      try {
+        return await callProvider(providerInfo, contents, config);
+      } catch (error) {
+        lastError = error;
+
+        if (error.message.includes("not configured") || (error.status && error.status === 401)) {
+          console.warn(`⏭️ Skipping ${providerInfo.provider} (${providerInfo.model}): API Key missing or invalid.`);
+          break; // Move to next provider
+        }
+
+        const status = error.status || (error.error && error.error.code);
+
+        // Retry on transient errors for the current provider
+        if (status === 503 || status === 429) {
+          const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+          console.warn(`⚠️ ${providerInfo.provider} busy (${status}). Retrying in ${Math.round(delay / 1000)}s...`);
+          await sleep(delay);
+          continue;
+        }
+
+        // For other errors, fallback to the next provider immediately
+        console.warn(`🔄 ${providerInfo.provider} failed (${status || error.message}). Falling back to next...`);
+        break;
+      }
+    }
+  }
+
+  throw lastError; // Only runs if every provider in the entire chain fails
+};
+
+const getSystemPrompt = (language, level, scenario, focusRule = null) => {
+  let persona = "";
+  if (focusRule) {
+    persona = `You are an expert Language Coach specializing in ${language}. Your single priority for this session is to help the user master the following grammar rule: "${focusRule}". You should act as an encouraging but meticulous coach.`;
+  } else if (scenario) {
+    persona = `You are a native speaker of ${language}. You are engaging the user in a realistic roleplay scenario: "${scenario}". Your job is to act naturally according to the context of this scenario (e.g., barista, interviewer, fellow traveler). Do not break character unless absolutely necessary.`;
+  } else {
+    persona = `You are an AI Language Tutor designed to help users learn a new language through real conversation.`;
+  }
+
   return `${persona}
 Context:
 - Target Language: ${language}
 - User Level: ${level}
 ${scenario ? `- Current Roleplay Scenario: ${scenario}` : ""}
+${focusRule ? `- CORE FOCUS RULE: "${focusRule}". Your primary goal is to guide the user to use this rule correctly in conversation.` : ""}
 
 Your Responsibilities:
-1. Conversation: Talk naturally with the user in the target language. Keep the conversation engaging and realistic. Ask follow-up questions to continue the conversation.
+1. Conversation: Talk naturally with the user in the target language. Keep the conversation engaging and realistic. ${focusRule ? `Try to steer the conversation into scenarios where the user MUST use the rule "${focusRule}".` : "Ask follow-up questions to continue the conversation."}
 2. Adapt to Level: Beginner -> simple words, short sentences. Intermediate -> moderate vocabulary and grammar. Advanced -> natural, fluent, native-level.
-3. Error Correction (VERY IMPORTANT): When the user makes a mistake: Identify grammar, tense, or vocabulary mistakes clearly. 
+3. Error Correction (VERY IMPORTANT): When the user makes a mistake: Identify grammar, tense, or vocabulary mistakes clearly. ${focusRule ? `Pay EXTREME attention to the rule "${focusRule}". If they miss it, prioritize correcting it.` : ""}
 4. Vocabulary Support (STRICT REQUIREMENT): Always identify 1-3 key vocabulary words or phrases from the current exchange (even if the user made no mistakes). These should be words the user just used correctly, or words the tutor introduced that are level-appropriate.
-5. Positive Feedback: If the user writes correctly, give short encouragement.
+5. Positive Feedback: If the user writes correctly, give short encouragement. ${focusRule ? `If they use the rule "${focusRule}" correctly, give them extra praise!` : ""}
 6. Keep It Balanced: Do NOT over-correct small mistakes. Focus on learning + conversation balance. Keep responses concise.
 
 Output Format Requirements:
@@ -47,8 +139,9 @@ export const generateTutorResponse = async (
   chatHistory,
   userMessage,
   scenario = null,
+  focusRule = null
 ) => {
-  const systemInstruction = getSystemPrompt(language, level, scenario);
+  const systemInstruction = getSystemPrompt(language, level, scenario, focusRule);
 
   const contents = [
     ...chatHistory,
@@ -58,14 +151,10 @@ export const generateTutorResponse = async (
   // console.log("chatHistory:", chatHistory);
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents,
-      config: {
-        systemInstruction,
-        temperature: 0.7,
-        responseMimeType: "application/json",
-      },
+    const response = await safeGenerateContent("gemini-2.5-flash", contents, {
+      systemInstruction,
+      temperature: 0.7,
+      responseMimeType: "application/json",
     });
 
     let text = response.text;
@@ -133,16 +222,12 @@ export const generateSessionSummary = async (language, level, chatHistory) => {
     }`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [
-        { role: "user", parts: [{ text: JSON.stringify(chatHistory) }] },
-        { role: "user", parts: [{ text: prompt }] },
-      ],
-      config: {
-        temperature: 0.4,
-        responseMimeType: "application/json",
-      },
+    const response = await safeGenerateContent("gemini-2.5-flash", [
+      { role: "user", parts: [{ text: JSON.stringify(chatHistory) }] },
+      { role: "user", parts: [{ text: prompt }] },
+    ], {
+      temperature: 0.4,
+      responseMimeType: "application/json",
     });
 
     let text = response.text;
@@ -166,33 +251,86 @@ export const generateSessionSummary = async (language, level, chatHistory) => {
   }
 };
 
-export const generateGrammarQuiz = async (language, level) => {
-  const prompt = `You are an expert language teacher. Generate a language grammar quiz for a student learning ${language} at the ${level} level.
-    The quiz must consist of exactly 10 multiple choice questions testing grammar, vocabulary, or sentence structure.
+export const generateGrammarQuiz = async (language, level, focusRule = null, previousMistakes = []) => {
+  const basePrompt = `You are an expert language teacher. Generate a language grammar quiz for a student learning ${language} at the ${level} level.`;
+
+  let specificInstructions = "";
+  if (previousMistakes && previousMistakes.length > 0) {
+    specificInstructions = `CRITICAL: The user previously took a quiz on this level/language and made the following mistakes: 
+    ${previousMistakes.map(m => `- Failed Question: "${m.question}" (Rule: ${m.grammarRule})`).join('\n')}
+    
+    IMPORTANT: You MUST generate a quiz that specifically targets these weaknesses. Focus on the nuances of these grammar rules where the user previously failed. Ensure the questions are fresh but address the same pitfalls.`;
+  } else if (focusRule) {
+    specificInstructions = `IMPORTANT: All 5 questions MUST specifically test the user's understanding of this specific grammar rule: "${focusRule}".`;
+  } else {
+    specificInstructions = `The quiz must consist of exactly 5 multiple choice questions testing general grammar, vocabulary, or sentence structure.`;
+  }
+
+  const prompt = `${basePrompt}
+    ${specificInstructions}
     You MUST respond IN STRICT JSON FORMAT.
     Format:
-    [
-      {
-        "question": "The question text",
-        "options": ["Option A", "Option B", "Option C", "Option D"],
-        "correctAnswerIndex": 0,
-        "explanation": "Why this answer is correct",
-        "grammarRule": "The underlying grammar rule"
-      }
-    ]`;
+    {
+      "questions": [
+        {
+          "question": "The question text IN THE TARGET LANGUAGE (e.g. Hindi/Spanish script)",
+          "options": ["Option A", "Option B", "Option C", "Option D"], // ALL IN TARGET LANGUAGE
+          "correctAnswerIndex": 0,
+          "explanation": "Why this answer is correct (IN THE TARGET LANGUAGE)",
+          "grammarRule": "The underlying grammar rule (IN THE TARGET LANGUAGE)"
+        }
+      ]
+    }`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        temperature: 0.7,
-        responseMimeType: "application/json",
-      },
+    const response = await safeGenerateContent("gemini-2.5-flash", [
+      { role: "user", parts: [{ text: prompt }] }
+    ], {
+      temperature: 0.7,
+      responseMimeType: "application/json",
     });
-    return JSON.parse(response.text);
+
+    let text = response.text;
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const parsed = JSON.parse(text);
+    return parsed.questions || parsed;
   } catch (error) {
     console.error("Quiz Generation Error:", error);
+    throw error;
+  }
+};
+
+export const generateGrammarLesson = async (language, level, rule) => {
+  const prompt = `Act as an expert language tutor. Create a concise, highly effective micro-lesson explaining the grammar rule: "${rule}" for a ${level} student learning ${language}.
+  The lesson should be easy to understand, provide 2-3 clear examples with translations, and include a quick "Tip".
+  
+  You MUST respond IN STRICT JSON FORMAT.
+  Format:
+  {
+    "title": "Friendly title for the lesson (IN THE TARGET LANGUAGE)",
+    "explanation": "Clear, concise explanation of the rule (IN THE TARGET LANGUAGE)",
+    "examples": [
+      {
+        "target": "Example in the target language (Use native script like Hindi/Japanese if applicable)",
+        "english": "English translation"
+      }
+    ],
+    "tip": "A helpful mnemonic, rule of thumb, or common mistake to avoid. (IN THE TARGET LANGUAGE)"
+  }`;
+
+  try {
+    const response = await safeGenerateContent("gemini-2.5-flash", [
+      { role: "user", parts: [{ text: prompt }] }
+    ], {
+      temperature: 0.7,
+      responseMimeType: "application/json",
+    });
+
+    let text = response.text;
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Lesson Generation Error:", error);
     throw error;
   }
 };
@@ -223,13 +361,11 @@ export const generateCEFRAssessment = async (language, currentLevel, sessionsDat
     }`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        temperature: 0.5,
-        responseMimeType: "application/json",
-      },
+    const response = await safeGenerateContent("gemini-2.5-flash", [
+      { role: "user", parts: [{ text: prompt }] }
+    ], {
+      temperature: 0.5,
+      responseMimeType: "application/json",
     });
 
     let text = response.text;
@@ -237,6 +373,105 @@ export const generateCEFRAssessment = async (language, currentLevel, sessionsDat
     return JSON.parse(text);
   } catch (error) {
     console.error("Assessment Generation Error:", error);
+    throw error;
+  }
+};
+
+export const generateStarterFocusAreas = async (language, level) => {
+  const prompt = `Act as an expert language tutor. I have a brand new student learning ${language} at the ${level} level. 
+  They need a "Starter Syllabus" of 3 to 4 fundamental grammar rules to focus on first to build a strong foundation.
+  Provide ONLY the names of the grammar rules.
+
+  You MUST respond IN STRICT JSON FORMAT.
+  Format:
+  {
+    "focusAreas": ["Rule 1", "Rule 2", "Rule 3"]
+  }`;
+
+  try {
+    const response = await safeGenerateContent("gemini-2.5-flash", [
+      { role: "user", parts: [{ text: prompt }] }
+    ], {
+      temperature: 0.7,
+      responseMimeType: "application/json",
+    });
+
+    let text = response.text;
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Starter Syllabus Generation Error:", error);
+    throw error;
+  }
+}; export const translateCurriculumTopics = async (language, topics) => {
+  const prompt = `You are a professional translator and language tutor. Translate the following grammar curriculum topics from English into ${language}.
+  Return the results as a JSON array of objects with the keys "rule" (original English name), "displayName" (translated name in ${language} script), and "displayDescription" (translated description in ${language} script).
+  
+  Input topics: ${JSON.stringify(topics)}
+  
+  Output Format:
+  {
+    "translated": [
+      { "rule": "Original Rule", "displayName": "Translated Name", "displayDescription": "Translated Desc" }
+    ]
+  }`;
+
+  try {
+    const response = await safeGenerateContent("gemini-2.5-flash", [
+      { role: "user", parts: [{ text: prompt }] }
+    ], {
+      temperature: 0.3,
+      responseMimeType: "application/json",
+    });
+
+    let text = response.text;
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const parsed = JSON.parse(text);
+    return parsed.translated || [];
+  } catch (error) {
+    console.error("Curriculum Translation Error:", error);
+    // Fallback: return original topics if translation fails
+    return topics.map(t => ({ ...t, displayName: t.rule, displayDescription: t.description }));
+  }
+};
+export const generateAdaptiveRemedialLesson = async (language, level, mistakes) => {
+  const prompt = `Act as an expert language tutor. A student learning ${language} at ${level} level just took a quiz and failed these specific questions:
+  ${mistakes.map(m => `- Question: "${m.question}" | Rule: "${m.grammarRule}" | Their Answer: "${m.userAnswer}"`).join('\n')}
+  
+  Your goal: Create a consolidated, high-impact "Recovery Lesson" in the target language (${language}).
+  - Explain the core mistakes they made.
+  - Provide a clear, easy-to-follow pedagogical explanation of the correct rules.
+  - Provide 2-3 tailored examples that address their exact pitfalls.
+  - Keep the tone encouraging but expert.
+  
+  You MUST respond IN STRICT JSON FORMAT.
+  Format:
+  {
+    "title": "A encouraging title for this recovery lesson (IN TARGET LANGUAGE)",
+    "summary": "Short summary of why these mistakes happened (IN TARGET LANGUAGE)",
+    "explanation": "Detailed but concise pedagogical explanation (IN TARGET LANGUAGE)",
+    "examples": [
+      {
+        "target": "Tailored example in ${language}",
+        "english": "English translation"
+      }
+    ],
+    "closingTip": "A final mnemonic or advice to avoid these specific errors in the future (IN TARGET LANGUAGE)"
+  }`;
+
+  try {
+    const response = await safeGenerateContent("gemini-2.5-flash", [
+      { role: "user", parts: [{ text: prompt }] }
+    ], {
+      temperature: 0.7,
+      responseMimeType: "application/json",
+    });
+
+    let text = response.text;
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Adaptive Lesson Generation Error:", error);
     throw error;
   }
 };
