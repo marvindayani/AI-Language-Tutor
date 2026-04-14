@@ -1,7 +1,7 @@
 import Quiz from '../models/Quiz.js';
 import User from '../models/User.js';
 import { generateGrammarQuiz } from '../services/ai.service.js';
-import { updateStreak, checkBadges } from '../utils/gamification.js';
+// import { updateStreak, checkBadges } from '../utils/gamification.js';
 import { checkLevelUnlock } from './learning.controller.js';
 
 export const createQuiz = async (req, res) => {
@@ -9,7 +9,7 @@ export const createQuiz = async (req, res) => {
     const { language, level, focusRule, previousMistakes } = req.body;
     const userId = req.user.id;
     const questions = await generateGrammarQuiz(language, level, focusRule, previousMistakes);
-    
+
     const quiz = new Quiz({
       userId,
       language,
@@ -19,9 +19,9 @@ export const createQuiz = async (req, res) => {
       mistakes: []
     });
     await quiz.save();
-    
+
     res.status(201).json({ quiz });
-  } catch(error) {
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
@@ -29,10 +29,10 @@ export const createQuiz = async (req, res) => {
 export const submitQuiz = async (req, res) => {
   try {
     const { quizId, score, totalQuestions, correctAnswers, mistakesData } = req.body;
-    
+
     const quiz = await Quiz.findById(quizId);
     if (!quiz) return res.status(404).json({ error: 'Quiz not found' });
-    
+
     quiz.score = score;
     quiz.completed = true;
     if (mistakesData) quiz.mistakes = mistakesData;
@@ -43,19 +43,42 @@ export const submitQuiz = async (req, res) => {
     user.quizzesTaken += 1;
     user.performanceScore += score * 10;
 
-    // Strict Mastery Logic: Topic is 100% complete ONLY if quiz score is 100%
+    // Dynamic Mastery: Auto-add topics and update progress instantly
     if (quiz.targetRule && typeof totalQuestions === 'number' && typeof correctAnswers === 'number') {
-      const focusArea = user.focusAreas?.find(fa => fa.rule === quiz.targetRule && fa.language === quiz.language);
+      const targetRuleLower = quiz.targetRule.toLowerCase();
+      const targetLangLower = quiz.language.toLowerCase();
+      
+      let focusArea = user.focusAreas?.find(fa => 
+        fa.rule.toLowerCase() === targetRuleLower && 
+        fa.language.toLowerCase() === targetLangLower
+      );
+
+      if (!focusArea) {
+        // Find the original casing from the curriculum to keep it clean, 
+        // but default to what the quiz provided if not found.
+        focusArea = {
+          rule: quiz.targetRule, // Preserving original casing provided by quiz generator
+          language: quiz.language,
+          level: quiz.level || 0,
+          masteryScore: 0,
+          isFocused: true
+        };
+        user.focusAreas.push(focusArea);
+        // Direct reference to the newly pushed subdocument
+        focusArea = user.focusAreas[user.focusAreas.length - 1];
+      }
+
       if (focusArea) {
         if (score === 100) {
           focusArea.masteryScore = 100;
-          focusArea.isFocused = false; // "Graduated"
+          focusArea.isFocused = false; // Topic fully graduated
         } else {
-          // If not 100, we don't advance to 100%. 
-          // We can still give a small boost for high scores, but not "Completion"
-          const boost = score >= 80 ? 5 : (score >= 60 ? 2 : 0);
+          // High-speed progression boosts
+          const boost = score >= 90 ? 25 : (score >= 80 ? 15 : (score >= 60 ? 5 : 0));
           focusArea.masteryScore = Math.min(99, (focusArea.masteryScore || 0) + boost);
         }
+        // CRITICAL: Tell Mongoose that the nested focusAreas list has changed
+        user.markModified('focusAreas');
       }
     }
 
@@ -64,20 +87,19 @@ export const submitQuiz = async (req, res) => {
     if (typeof totalQuestions === 'number' && typeof correctAnswers === 'number') {
       user.totalQuestionsAnswered = (user.totalQuestionsAnswered || 0) + totalQuestions;
       user.totalCorrectAnswers    = (user.totalCorrectAnswers    || 0) + correctAnswers;
-
-      // Recalculate running accuracy rate (round to 1 decimal)
       user.accuracyRate = user.totalQuestionsAnswered > 0
         ? Math.round((user.totalCorrectAnswers / user.totalQuestionsAnswered) * 1000) / 10
         : 0;
     }
 
-    // ✅ Check for Level Unlock!
-    const unlockStatus = await checkLevelUnlock(user._id);
-
+    // 🏆 CRITICAL FIX: Save the user'S progress FIRST to lock in the score
     await user.save();
 
+    // ✅ Then check for Level Unlock using the recorded progress
+    const unlockStatus = await checkLevelUnlock(user._id);
+
     res.status(200).json({ quiz, user, unlockStatus });
-  } catch(error) {
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };

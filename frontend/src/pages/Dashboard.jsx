@@ -212,7 +212,7 @@ const Dashboard = () => {
                   <p className="text-slate-500 text-sm font-medium leading-relaxed mb-4">Test your grammar and vocabulary with interactive quizzes.</p>
                   <div className="flex items-center text-emerald-600 font-bold text-sm">
                     Enter Hub <ChevronRight size={16} className="ml-1 transition-transform group-hover:translate-x-1" />
-                   </div>
+                  </div>
                 </button>
               </div>
             </section>

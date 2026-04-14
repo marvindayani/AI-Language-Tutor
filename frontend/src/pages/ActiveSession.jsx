@@ -211,14 +211,11 @@ const ActiveSession = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      const data = await res.json();
-
-      console.log("End Session:", data);
-
-      if (res.ok && data?.session) {
+      if (res.ok) {
         navigate(`/session/${id}/summary`);
       } else {
-        throw new Error("Failed to end session");
+        const data = await res.json();
+        throw new Error(data.error || "Failed to end session");
       }
 
     } catch (err) {

@@ -9,13 +9,15 @@ const SessionSummary = () => {
   const { token } = useContext(AuthContext);
 
   useEffect(() => {
-    fetch(`http://localhost:5000/api/chat/session/${id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => setSession(data.session))
-      .catch(err => console.error(err));
-  }, [id]);
+    if (token && id) {
+      fetch(`http://localhost:5000/api/chat/session/${id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => setSession(data.session))
+        .catch(err => console.error(err));
+    }
+  }, [id, token]);
 
   if (!session || !session.summary) {
     return <div className="h-screen flex items-center justify-center text-gray-500 animate-pulse">Analyzing conversation history...</div>;

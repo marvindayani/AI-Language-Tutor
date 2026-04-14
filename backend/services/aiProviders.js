@@ -35,13 +35,23 @@ export const fetchGroq = async (model, contents, config) => {
   const groq = new Groq({ apiKey });
   const messages = formatMessages(contents, config);
 
-  const completion = await groq.chat.completions.create({
+  const options = {
     messages,
     model,
     temperature: config?.temperature || 0.7,
     max_tokens: config?.max_tokens || 2048,
-    response_format: { type: "json_object" },
-  });
+  };
+
+  // Groq REQUIRES the word 'json' in the prompt if using json_object mode
+  if (config?.responseMimeType === "application/json") {
+    options.response_format = { type: "json_object" };
+    const hasJsonWord = messages.some(m => m.content.toLowerCase().includes("json"));
+    if (!hasJsonWord) {
+      messages.unshift({ role: "system", content: "You MUST respond in valid JSON format." });
+    }
+  }
+
+  const completion = await groq.chat.completions.create(options);
 
   return { text: completion.choices[0].message.content };
 };
@@ -54,13 +64,22 @@ export const fetchMistral = async (model, contents, config) => {
   const mistral = new Mistral({ apiKey });
   const messages = formatMessages(contents, config);
 
-  const completion = await mistral.chat.complete({
+  const options = {
     model,
     messages,
     temperature: config?.temperature || 0.7,
     maxTokens: config?.max_tokens || 2048,
-    responseFormat: { type: "json_object" },
-  });
+  };
+
+  if (config?.responseMimeType === "application/json") {
+    options.responseFormat = { type: "json_object" };
+    const hasJsonWord = messages.some(m => m.content.toLowerCase().includes("json"));
+    if (!hasJsonWord) {
+      messages.unshift({ role: "system", content: "You MUST respond in valid JSON format." });
+    }
+  }
+
+  const completion = await mistral.chat.complete(options);
 
   return { text: completion.choices[0].message.content };
 };

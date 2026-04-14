@@ -39,19 +39,30 @@ export const getUserStats = async (req, res) => {
       sessions: performanceMap[date]
     }));
 
-    // Fetch all quiz results for trends
-    const quizzes = await Quiz.find({ userId, completed: true }).sort({ createdAt: 1 });
-    const quizStats = quizzes.map(q => ({
-      date: new Date(q.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      score: q.score,
-      language: q.language
-    }));
+    // Fetch last 15 quiz results for trends (Only Practice Hub - where targetRule is null)
+    const recentQuizzes = await Quiz.find({ userId, completed: true, targetRule: null })
+      .sort({ createdAt: -1 })
+      .limit(15);
+    
+    // Sort them back to chronological order for the chart
+    const quizzes = recentQuizzes.reverse();
+
+    const quizStats = quizzes.map(q => {
+      const dateObj = new Date(q.createdAt);
+      return {
+        // Shorter date format to prevent overlapping on the X-axis
+        date: dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ", " + 
+              dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }),
+        score: Math.max(0, q.score),
+        language: q.language
+      };
+    });
 
     // Build accuracy trend: running accuracy % after each quiz
     let runningTotal = 0, runningCorrect = 0;
     const accuracyTrend = quizzes.map(q => {
       const total   = q.questions?.length || 0;
-      const correct = Math.round((q.score / 100) * total); // score is a % from the frontend
+      const correct = Math.max(0, Math.round((q.score / 100) * total)); // Floor at 0 to fix legacy bugs
       runningTotal   += total;
       runningCorrect += correct;
       return {

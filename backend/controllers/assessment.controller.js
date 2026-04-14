@@ -49,8 +49,8 @@ export const generateAssessment = async (req, res) => {
     const existing = await Assessment.findOne({ userId, milestone });
     if (existing) return res.status(200).json({ assessment: existing, message: 'Assessment already exists' });
 
-    // Fetch data for the last 5 sessions
-    const lastSessions = await Session.find({ userId })
+    // Fetch data for the last 5 sessions that actually have summaries
+    const sessionsWithSummaries = await Session.find({ userId, summary: { $ne: null } })
       .sort({ createdAt: -1 })
       .limit(5);
 
@@ -62,7 +62,7 @@ export const generateAssessment = async (req, res) => {
     const assessmentData = await generateCEFRAssessment(
       user.language,
       user.level,
-      lastSessions.map(s => s.summary),
+      sessionsWithSummaries.map(s => s.summary),
       recentQuizzes.map(q => ({ score: q.score, language: q.language, date: q.createdAt }))
     );
 
@@ -75,7 +75,7 @@ export const generateAssessment = async (req, res) => {
       strengths: assessmentData.strengths,
       weaknesses: assessmentData.weaknesses,
       nextSteps: assessmentData.nextSteps,
-      sessionIds: lastSessions.map(s => s._id)
+      sessionIds: sessionsWithSummaries.map(s => s._id)
     });
 
     console.log(newAssessment);

@@ -20,7 +20,7 @@ const LearningHub = () => {
 
   useEffect(() => {
     if (token) fetchFocusAreas();
-  }, [token]);
+  }, [token, navigate]); // Added navigate to ensure refresh on route returns
 
   const fetchFocusAreas = async () => {
     try {
@@ -106,20 +106,20 @@ const LearningHub = () => {
       setLoading(false);
     }
   };
-  
+
   const handleStartInteractivePractice = async (rule) => {
     setLoading(true);
     try {
       const res = await fetch('http://localhost:5000/api/chat/session', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          language: user?.language || 'English', 
-          level: user?.level || 'beginner', 
-          focusRule: rule 
+        body: JSON.stringify({
+          language: user?.language || 'English',
+          level: user?.level || 'beginner',
+          focusRule: rule
         })
       });
       const data = await res.json();
@@ -164,9 +164,9 @@ const LearningHub = () => {
               </h2>
               <div className="flex items-center gap-4">
                 <div className="flex-1 bg-slate-100 h-3 rounded-full overflow-hidden">
-                  <div 
-                    className="bg-emerald-500 h-full transition-all duration-1000" 
-                    style={{ width: `${(currentLevel / Object.keys(curriculum).length) * 100}%` }} 
+                  <div
+                    className="bg-emerald-500 h-full transition-all duration-1000"
+                    style={{ width: `${(currentLevel / Object.keys(curriculum).length) * 100}%` }}
                   />
                 </div>
                 <span className="text-lg font-black text-slate-800">Level {currentLevel}</span>
@@ -178,7 +178,7 @@ const LearningHub = () => {
                 const levelNum = parseInt(lvl);
                 const isLocked = levelNum > currentLevel;
                 const topics = curriculum[lvl];
-                
+
                 return (
                   <div key={lvl} className={`bg-white rounded-[24px] border border-slate-100 overflow-hidden shadow-sm transition-all ${isLocked ? 'opacity-60 grayscale' : ''}`}>
                     <div className={`px-6 py-4 border-b border-slate-50 flex items-center justify-between ${levelNum === currentLevel ? 'bg-emerald-50/50' : 'bg-slate-50/30'}`}>
@@ -186,14 +186,16 @@ const LearningHub = () => {
                         {isLocked ? <Lock size={14} /> : <CheckCircle2 size={14} />} Level {levelNum}
                       </h2>
                       {levelNum === currentLevel && (
-                         <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase">Active</span>
+                        <span className="text-[10px] font-black bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase">Active</span>
                       )}
                     </div>
                     <div className="divide-y divide-slate-50">
                       {topics.map((topic, i) => {
-                        const userArea = focusAreas.find(fa => fa.rule === topic.rule);
+                        const userArea = focusAreas.find(fa => 
+                          fa.rule?.toLowerCase() === topic.rule?.toLowerCase()
+                        );
                         const mastery = userArea?.masteryScore || 0;
-                        
+
                         return (
                           <button
                             key={i}
@@ -235,25 +237,25 @@ const LearningHub = () => {
                 </button>
               </div>
             )}
-            
+
             {/* Custom Topics Section */}
             {focusAreas.some(fa => fa.level === 0) && (
               <div className="bg-white rounded-[24px] border border-slate-100 overflow-hidden shadow-sm">
-                 <div className="px-6 py-4 border-b border-slate-50 bg-slate-50/20 text-xs font-black text-slate-400 uppercase tracking-widest">
-                   Custom Practice
-                 </div>
-                 <div className="divide-y divide-slate-50">
-                    {focusAreas.filter(fa => fa.level === 0).map((area) => (
-                      <button
-                        key={area._id}
-                        onClick={() => handleGenerateLesson(area.rule)}
-                        className={`w-full text-left p-4 hover:bg-slate-50 transition-colors flex items-center justify-between group ${activeLesson?.rule === area.rule ? 'bg-emerald-50/30' : ''}`}
-                      >
-                         <h3 className="font-bold text-slate-800 text-sm">{area.rule}</h3>
-                         <ChevronRight size={16} className="text-slate-300 group-hover:text-emerald-500 transition-colors" />
-                      </button>
-                    ))}
-                 </div>
+                <div className="px-6 py-4 border-b border-slate-50 bg-slate-50/20 text-xs font-black text-slate-400 uppercase tracking-widest">
+                  Custom Practice
+                </div>
+                <div className="divide-y divide-slate-50">
+                  {focusAreas.filter(fa => fa.level === 0).map((area) => (
+                    <button
+                      key={area._id}
+                      onClick={() => handleGenerateLesson(area.rule)}
+                      className={`w-full text-left p-4 hover:bg-slate-50 transition-colors flex items-center justify-between group ${activeLesson?.rule === area.rule ? 'bg-emerald-50/30' : ''}`}
+                    >
+                      <h3 className="font-bold text-slate-800 text-sm">{area.rule}</h3>
+                      <ChevronRight size={16} className="text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 

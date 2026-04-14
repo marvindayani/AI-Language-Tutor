@@ -11,10 +11,10 @@ export const startSession = async (req, res) => {
   try {
     const { language, level, scenario, focusRule } = req.body;
     const userId = req.user.id;
-    
+
     let user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
-    
+
     user.language = language;
     user.level = level;
     await user.save();
@@ -38,7 +38,7 @@ export const startSession = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const { sessionId, text } = req.body;
-    
+
     const session = await Session.findById(sessionId);
     if (!session) return res.status(404).json({ error: 'Session not found' });
 
@@ -65,12 +65,14 @@ export const sendMessage = async (req, res) => {
       sessionId,
       role: 'ai',
       text: aiData.reply,
+      fullCorrection: aiData.fullCorrection || null,
       corrections: aiData.corrections || []
     });
     await aiMessage.save();
 
-    // ✅ NEW: Update the original user message with the same corrections!
+    // ✅ Update the original user message with the same corrections + fullCorrection!
     userMessage.corrections = aiData.corrections || [];
+    userMessage.fullCorrection = aiData.fullCorrection || null;
     await userMessage.save();
 
     res.status(200).json({
@@ -99,7 +101,7 @@ export const endSession = async (req, res) => {
     const chatHistory = messages.map(msg => ({
       role: msg.role === 'ai' ? 'model' : 'user',
       text: msg.text,
-      corrections: msg.corrections || []                 
+      corrections: msg.corrections || []
     }));
 
     const summaryData = await generateSessionSummary(
@@ -112,7 +114,7 @@ export const endSession = async (req, res) => {
     session.summary = summaryData;
 
     await session.save();
-    
+
     // Update user stats + accuracy tracking
     const user = await User.findById(session.userId);
     if (user) {
@@ -128,7 +130,7 @@ export const endSession = async (req, res) => {
 
       if (totalAttempts > 0) {
         user.totalQuestionsAnswered = (user.totalQuestionsAnswered || 0) + totalAttempts;
-        user.totalCorrectAnswers    = (user.totalCorrectAnswers    || 0) + correctAttempts;
+        user.totalCorrectAnswers = (user.totalCorrectAnswers || 0) + correctAttempts;
 
         user.accuracyRate = user.totalQuestionsAnswered > 0
           ? Math.round((user.totalCorrectAnswers / user.totalQuestionsAnswered) * 1000) / 10
@@ -215,7 +217,7 @@ export const getUserSessions = async (req, res) => {
   try {
     const userId = req.user.id;
     const sessionsWithMessages = await Message.distinct('sessionId');
-    const sessions = await Session.find({ 
+    const sessions = await Session.find({
       userId,
       _id: { $in: sessionsWithMessages }
     }).sort({ createdAt: -1 });
