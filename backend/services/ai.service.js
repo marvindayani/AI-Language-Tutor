@@ -376,8 +376,10 @@ export const generateCEFRAssessment = async (language, currentLevel, sessionsDat
     - Evaluate overall communicative competence (fluency, range, accuracy).
     - Determine the user's objective CEFR level (A1, A2, B1, B2, C1, C2).
     - Contrast their natural conversational performance with their formal test scores.
+    - Contrast their natural conversational performance with their formal test scores.
     - Provide a detailed pedagogical report IN ${language} with 3 strengths, 3 weaknesses, and 3 next steps.
-    - CRITICAL: The fields "report", "strengths", "weaknesses", and "nextSteps" MUST be written EXCLUSIVELY in ${language}.
+    - STRICT LANGUAGE ENFORCEMENT: All human-readable content (the fields "report", "strengths", "weaknesses", and "nextSteps") MUST be written STOICALLY AND EXCLUSIVELY in ${language}. 
+    - Ensure every bullet point in the arrays is fully translated and natural in ${language}.
 
     You MUST respond IN STRICT JSON FORMAT.
     Format:
