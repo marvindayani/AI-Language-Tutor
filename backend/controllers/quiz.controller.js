@@ -41,7 +41,7 @@ export const submitQuiz = async (req, res) => {
     // Update user performance
     const user = await User.findById(quiz.userId);
     user.quizzesTaken += 1;
-    user.performanceScore += score * 2;
+    user.performanceScore += score * 1;
 
     // Dynamic Mastery: Auto-add topics and update progress instantly
     if (quiz.targetRule && typeof totalQuestions === 'number' && typeof correctAnswers === 'number') {
@@ -67,7 +67,7 @@ export const submitQuiz = async (req, res) => {
         // Direct reference to the newly pushed subdocument
         focusArea = user.focusAreas[user.focusAreas.length - 1];
       }
-
+      
       if (focusArea) {
         if (score === 100) {
           focusArea.masteryScore = 100;

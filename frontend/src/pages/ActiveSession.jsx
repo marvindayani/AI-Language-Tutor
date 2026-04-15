@@ -1,23 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ChatWindow from '../components/ChatWindow.jsx';
 import { Send, LogOut, Mic, MicOff, ArrowLeft, Trash2 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import BASE_URL from '../config';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 const ActiveSession = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token, setUser } = React.useContext(AuthContext);
+  const { token, user, setUser } = useContext(AuthContext);
 
   const [messages, setMessages] = useState([]);
   const [sessions, setSessions] = useState([]); // ✅ Store all past sessions
   const [text, setText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = React.useRef(null);
+  const [isEnding, setIsEnding] = useState(false);
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
     if (SpeechRecognition) {
@@ -61,7 +63,9 @@ const ActiveSession = () => {
         });
         const data = await res.json();
         if (res.ok && data.sessions) {
-          setSessions(data.sessions);
+          // Filter out sessions that have a scenario (Immersive Roleplay)
+          const standardChatSessions = data.sessions.filter(s => !s.scenario);
+          setSessions(standardChatSessions);
         }
       } catch (err) {
         console.error("Fetch all sessions error:", err);
@@ -204,7 +208,7 @@ const ActiveSession = () => {
   };
 
   const handleEndSession = async () => {
-    setIsTyping(true);
+    setIsEnding(true);
 
     try {
       const res = await fetch(`${BASE_URL}/api/chat/session/${id}/end`, {
@@ -224,11 +228,42 @@ const ActiveSession = () => {
     } catch (err) {
       console.error("End session error:", err);
       alert("Failed to end session");
+      setIsEnding(false); // Reset if failed
+    }
+  };
 
+
+
+  const handleNewChat = async () => {
+    // setIsTyping(true); // Reuse typing state for loading
+    try {
+      const lang = user?.language || 'English';
+      const lvl = user?.level || 'beginner';
+      
+      const res = await fetch(`${BASE_URL}/api/chat/session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ language: lang, level: lvl })
+      });
+      const data = await res.json();
+      if (data.session) {
+        navigate(`/session/${data.session._id}`);
+      } else {
+        throw new Error(data.error || "Failed to create session");
+      }
+    } catch (err) {
+      console.error("New chat error:", err);
+      if (err.message !== "Unexpected end of JSON input") {
+         alert("Failed to start new chat");
+      }
     } finally {
       setIsTyping(false);
     }
   };
+
   return (
     <div className="flex h-screen bg-gray-50/50 w-full overflow-hidden">
       
@@ -237,17 +272,12 @@ const ActiveSession = () => {
         <div className="p-4 border-b border-gray-200 bg-gray-50/30 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-bold tracking-tight text-gray-500 uppercase">Chat History</h2>
-            <button 
-              onClick={() => navigate('/')}
-              className="p-1.5 hover:bg-gray-200 rounded-lg text-gray-500 transition-colors"
-              title="Start New Chat"
-            >
-              <Send size={14} className="rotate-[-45deg]" />
-            </button>
+
           </div>
           <button 
-            onClick={() => navigate('/')}
-            className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100"
+            onClick={handleNewChat}
+            disabled={isTyping}
+            className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-all shadow-md shadow-indigo-100 disabled:opacity-50"
           >
             + New Chat
           </button>
@@ -302,7 +332,7 @@ const ActiveSession = () => {
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm shrink-0">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-gray-700 transition-colors p-2 -ml-2 rounded-lg hover:bg-gray-100" title="Go Back">
+            <button onClick={() => navigate("/")} className="text-gray-400 hover:text-gray-700 transition-colors p-2 -ml-2 rounded-lg hover:bg-gray-100" title="Go Back">
               <ArrowLeft size={20} />
             </button>
             <div>
@@ -317,8 +347,8 @@ const ActiveSession = () => {
 
           <button
             onClick={handleEndSession}
-            disabled={isTyping}
-            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-sm font-medium transition-colors"
+            disabled={isTyping || isEnding}
+            className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
             <LogOut size={16} /> End Session
           </button>
@@ -366,6 +396,39 @@ const ActiveSession = () => {
           </div>
         </main>
       </div>
+      {/* Ending Overlay */}
+      <AnimatePresence>
+        {isEnding && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="bg-white rounded-[32px] p-10 max-w-sm w-full shadow-2xl text-center flex flex-col items-center border border-indigo-100"
+            >
+              <div className="relative mb-6">
+                 <div className="w-16 h-16 border-4 border-gray-100 rounded-full"></div>
+                 <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin absolute inset-0"></div>
+              </div>
+              
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Analyzing Session</h2>
+              <p className="text-gray-500 text-sm font-medium leading-relaxed">
+                Please wait some time while we <br /> prepare your results...
+              </p>
+              
+              <div className="mt-8 flex gap-1.5 justify-center">
+                <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce"></div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

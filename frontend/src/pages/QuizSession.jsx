@@ -23,6 +23,7 @@ const QuizSession = () => {
   const [newBadges, setNewBadges] = useState([]); // ✅ Store earned badges
   const [showReview, setShowReview] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30); // 30 seconds per question
+  const [isEnding, setIsEnding] = useState(false);
   const [addingFocus, setAddingFocus] = useState(false);
   const [unlockedLevel, setUnlockedLevel] = useState(null);
   const [remedialLesson, setRemedialLesson] = useState(null);
@@ -116,6 +117,7 @@ const QuizSession = () => {
     const finalMistakes = mistakes;
 
     if (isLast) {
+      setIsEnding(true);
       // submit quiz to backend
       const totalQ = quiz.questions.length;
       const finalCorrectCount = totalQ - finalMistakes.length;
@@ -150,7 +152,11 @@ const QuizSession = () => {
           setTimeout(() => confetti({ particleCount: 200, spread: 100, origin: { y: 0.4 } }), 1000);
           setUnlockedLevel(data.unlockStatus.nextLevel);
         }
-      } catch (err) { console.error(err); };
+      } catch (err) { 
+        console.error(err); 
+      } finally {
+        setIsEnding(false);
+      }
 
       // Update state for result screen rendering
       setCorrectCount(finalCorrectCount);
@@ -522,6 +528,39 @@ const QuizSession = () => {
           </motion.div>
         </AnimatePresence>
       </div>
+      {/* Ending Overlay */}
+      <AnimatePresence>
+        {isEnding && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6 text-center"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="bg-white rounded-[32px] p-10 max-w-sm w-full shadow-2xl flex flex-col items-center border border-indigo-100"
+            >
+              <div className="relative mb-6">
+                 <div className="w-16 h-16 border-4 border-indigo-50 rounded-full"></div>
+                 <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin absolute inset-0"></div>
+              </div>
+              
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Calculating Results</h2>
+              <p className="text-gray-500 text-sm font-medium leading-relaxed">
+                Please wait some time while we <br /> update your scores...
+              </p>
+              
+              <div className="mt-8 flex gap-1.5 justify-center">
+                <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce"></div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

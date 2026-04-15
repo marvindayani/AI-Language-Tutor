@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Mic, MicOff, Volume2, LogOut, Bot, User, ArrowLeft, Target } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import BASE_URL from '../config';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Attempt to use web speech API
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -17,6 +18,7 @@ const VoiceSession = () => {
   const [messages, setMessages] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
   const [sessionInfo, setSessionInfo] = useState({ language: 'English' });
   const [transcript, setTranscript] = useState('');
   
@@ -141,7 +143,7 @@ const VoiceSession = () => {
   };
 
   const handleEndSession = async () => {
-    setIsProcessing(true);
+    setIsEnding(true);
     try {
       const res = await fetch(`${BASE_URL}/api/chat/session/${id}/end`, {
         method: 'POST',
@@ -157,8 +159,7 @@ const VoiceSession = () => {
     } catch (err) {
       console.error(err);
       alert("Failed to end session");
-    } finally {
-      setIsProcessing(false);
+      setIsEnding(false);
     }
   };
 
@@ -188,8 +189,8 @@ const VoiceSession = () => {
              </p>
           </div>
         </div>
-        <button onClick={handleEndSession} disabled={isProcessing}
-          className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded-lg text-sm font-medium transition-colors border border-rose-500/20">
+        <button onClick={handleEndSession} disabled={isProcessing || isEnding}
+          className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded-lg text-sm font-medium transition-colors border border-rose-500/20 disabled:opacity-50">
           <LogOut size={16} /> End Roleplay
         </button>
       </header>
@@ -282,6 +283,39 @@ const VoiceSession = () => {
           {isRecording ? 'Tap to finish' : 'Tap to speak'}
         </span>
       </div>
+      {/* Ending Overlay */}
+      <AnimatePresence>
+        {isEnding && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="bg-white rounded-[32px] p-10 max-w-sm w-full shadow-2xl text-center flex flex-col items-center border border-indigo-100"
+            >
+              <div className="relative mb-6">
+                 <div className="w-16 h-16 border-4 border-indigo-50 rounded-full"></div>
+                 <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin absolute inset-0"></div>
+              </div>
+              
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Analyzing Performance</h2>
+              <p className="text-gray-500 text-sm font-medium leading-relaxed">
+                Please wait some time while we <br /> prepare your report...
+              </p>
+              
+              <div className="mt-8 flex gap-1.5 justify-center">
+                <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce"></div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
