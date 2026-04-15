@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, Globe, BarChart, BookOpen, LogOut, Award, ChevronRight, Flame, Star, ShieldCheck, Plane, Trophy, Map, MessageSquare, Headphones, Zap, GraduationCap } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { motion } from 'framer-motion';
+import BASE_URL from '../config';
 
 const Dashboard = () => {
   const { user, token, logoutUser, refreshUser } = useContext(AuthContext);
@@ -24,7 +25,7 @@ const Dashboard = () => {
 
   const fetchLatestAssessment = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/assessment/latest', {
+      const res = await fetch(`${BASE_URL}/api/assessment/latest`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -37,7 +38,7 @@ const Dashboard = () => {
   const handleManualAssessment = async () => {
     setGeneratingAssessment(true);
     try {
-      const res = await fetch('http://localhost:5000/api/assessment/generate', {
+      const res = await fetch(`${BASE_URL}/api/assessment/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,7 +60,7 @@ const Dashboard = () => {
   const handleStartSession = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/chat/session', {
+      const res = await fetch(`${BASE_URL}/api/chat/session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +77,7 @@ const Dashboard = () => {
 
   const syncSettings = async (newLang, newLvl) => {
     try {
-      await fetch('http://localhost:5000/api/user/settings', {
+      await fetch(`${BASE_URL}/api/user/settings`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +104,7 @@ const Dashboard = () => {
   const handleStartQuiz = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/quiz/generate', {
+      const res = await fetch(`${BASE_URL}/api/quiz/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

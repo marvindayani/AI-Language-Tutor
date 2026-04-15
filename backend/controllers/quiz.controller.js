@@ -1,7 +1,7 @@
 import Quiz from '../models/Quiz.js';
 import User from '../models/User.js';
 import { generateGrammarQuiz } from '../services/ai.service.js';
-// import { updateStreak, checkBadges } from '../utils/gamification.js';
+import { updateStreak, checkBadges } from '../utils/gamification.js';
 import { checkLevelUnlock } from './learning.controller.js';
 
 export const createQuiz = async (req, res) => {
@@ -95,10 +95,15 @@ export const submitQuiz = async (req, res) => {
     // 🏆 CRITICAL FIX: Save the user'S progress FIRST to lock in the score
     await user.save();
 
+    // ✅ NEW: Update Gamification (Streaks & Badges)
+    updateStreak(user);
+    const newBadges = checkBadges(user);
+    await user.save();
+
     // ✅ Then check for Level Unlock using the recorded progress
     const unlockStatus = await checkLevelUnlock(user._id);
 
-    res.status(200).json({ quiz, user, unlockStatus });
+    res.status(200).json({ quiz, user, unlockStatus, newBadges });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

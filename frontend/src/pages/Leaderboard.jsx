@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trophy, Medal, Globe, MessageCircle, TrendingUp, Search, Crown } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import BASE_URL from '../config';
 
 const Leaderboard = () => {
   const { token, user: currentUser } = useContext(AuthContext);
@@ -17,7 +18,7 @@ const Leaderboard = () => {
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/user/leaderboard?language=${filter}`, {
+      const res = await fetch(`${BASE_URL}/api/user/leaderboard?language=${filter}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();

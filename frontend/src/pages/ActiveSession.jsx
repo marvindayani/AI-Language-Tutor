@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import ChatWindow from '../components/ChatWindow.jsx';
 import { Send, LogOut, Mic, MicOff, ArrowLeft, Trash2 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import BASE_URL from '../config';
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 const ActiveSession = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token } = React.useContext(AuthContext);
+  const { token, setUser } = React.useContext(AuthContext);
 
   const [messages, setMessages] = useState([]);
   const [sessions, setSessions] = useState([]); // ✅ Store all past sessions
@@ -55,7 +56,7 @@ const ActiveSession = () => {
   useEffect(() => {
     const fetchAllSessions = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/chat/sessions', {
+        const res = await fetch(`${BASE_URL}/api/chat/sessions`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -74,7 +75,7 @@ const ActiveSession = () => {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/chat/session/${id}`, {
+        const res = await fetch(`${BASE_URL}/api/chat/session/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -122,7 +123,7 @@ const ActiveSession = () => {
     try {
       console.log("Sending:", userMsgText);
 
-      const res = await fetch('http://localhost:5000/api/chat/message', {
+      const res = await fetch(`${BASE_URL}/api/chat/message`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -173,7 +174,7 @@ const ActiveSession = () => {
     if (!window.confirm("Are you sure you want to delete this chat history?")) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/chat/session/${sessionId}`, {
+      const res = await fetch(`${BASE_URL}/api/chat/session/${sessionId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -206,15 +207,17 @@ const ActiveSession = () => {
     setIsTyping(true);
 
     try {
-      const res = await fetch(`http://localhost:5000/api/chat/session/${id}/end`, {
+      const res = await fetch(`${BASE_URL}/api/chat/session/${id}/end`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
+      const data = await res.json();
+
       if (res.ok) {
-        navigate(`/session/${id}/summary`);
+        if (data.user) setUser(data.user);
+        navigate(`/session/${id}/summary`, { state: { newBadges: data.newBadges } });
       } else {
-        const data = await res.json();
         throw new Error(data.error || "Failed to end session");
       }
 

@@ -1,16 +1,20 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { Award, BookOpen, AlertTriangle, Lightbulb } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import BadgeCelebration from '../components/BadgeCelebration';
+import BASE_URL from '../config';
 
 const SessionSummary = () => {
   const { id } = useParams();
+  const location = useLocation();
   const [session, setSession] = useState(null);
   const { token } = useContext(AuthContext);
+  const [showBadges, setShowBadges] = useState(!!location.state?.newBadges);
 
   useEffect(() => {
     if (token && id) {
-      fetch(`http://localhost:5000/api/chat/session/${id}`, {
+      fetch(`${BASE_URL}/api/chat/session/${id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
         .then(res => res.json())
@@ -27,6 +31,12 @@ const SessionSummary = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      {showBadges && (
+        <BadgeCelebration 
+          badges={location.state.newBadges} 
+          onClose={() => setShowBadges(false)} 
+        />
+      )}
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="text-center">
           <div className="mx-auto h-16 w-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center shadow-sm border border-green-200 mb-4">

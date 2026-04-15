@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Mic, MicOff, Volume2, LogOut, Bot, User, ArrowLeft, Target } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import BASE_URL from '../config';
 
 // Attempt to use web speech API
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -11,7 +12,7 @@ const VoiceSession = () => {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { token } = React.useContext(AuthContext);
+  const { token, setUser } = React.useContext(AuthContext);
   
   const [messages, setMessages] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
@@ -24,7 +25,7 @@ const VoiceSession = () => {
 
   useEffect(() => {
     // Initial fetch to get session info (mainly language to configure speech)
-    fetch(`http://localhost:5000/api/chat/session/${id}`, {
+    fetch(`${BASE_URL}/api/chat/session/${id}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -114,7 +115,7 @@ const VoiceSession = () => {
     setIsProcessing(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/chat/message', {
+      const res = await fetch(`${BASE_URL}/api/chat/message`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -142,16 +143,19 @@ const VoiceSession = () => {
   const handleEndSession = async () => {
     setIsProcessing(true);
     try {
-      const res = await fetch(`http://localhost:5000/api/chat/session/${id}/end`, {
+      const res = await fetch(`${BASE_URL}/api/chat/session/${id}/end`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      const data = await res.json();
       if (res.ok) {
-        navigate(`/session/${id}/summary`);
+        if (data.user) setUser(data.user);
+        navigate(`/session/${id}/summary`, { state: { newBadges: data.newBadges } });
       } else {
-        throw new Error();
+        throw new Error(data.error || "Failed to end session");
       }
     } catch (err) {
+      console.error(err);
       alert("Failed to end session");
     } finally {
       setIsProcessing(false);

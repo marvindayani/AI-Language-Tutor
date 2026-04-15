@@ -4,12 +4,14 @@ import { CheckCircle, XCircle, ArrowRight, Award, BookOpen, ArrowLeft, Volume2, 
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { AuthContext } from '../context/AuthContext';
+import BadgeCelebration from '../components/BadgeCelebration';
+import BASE_URL from '../config';
 
 const QuizSession = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
   const quiz = state?.quiz;
-  const { token } = useContext(AuthContext);
+  const { token, setUser } = useContext(AuthContext);
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -18,6 +20,7 @@ const QuizSession = () => {
   const [score, setScore] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [mistakes, setMistakes] = useState([]); // track wrong answers for review
+  const [newBadges, setNewBadges] = useState([]); // ✅ Store earned badges
   const [showReview, setShowReview] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30); // 30 seconds per question
   const [addingFocus, setAddingFocus] = useState(false);
@@ -28,7 +31,7 @@ const QuizSession = () => {
   const handleAddFocus = async (rule) => {
     setAddingFocus(true);
     try {
-      await fetch('http://localhost:5000/api/learning/focus-areas', {
+      await fetch(`${BASE_URL}/api/learning/focus-areas`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -118,7 +121,7 @@ const QuizSession = () => {
       const finalCorrectCount = totalQ - finalMistakes.length;
 
       try {
-        const res = await fetch('http://localhost:5000/api/quiz/submit', {
+        const res = await fetch(`${BASE_URL}/api/quiz/submit`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -133,6 +136,11 @@ const QuizSession = () => {
           })
         });
         const data = await res.json();
+
+        if (res.ok) {
+          if (data.user) setUser(data.user);
+          if (data.newBadges) setNewBadges(data.newBadges);
+        }
 
         if (finalCorrectCount / totalQ >= 0.8) {
           confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
@@ -160,7 +168,7 @@ const QuizSession = () => {
   const handleFetchRemedialLesson = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/learning/remedial-lesson', {
+      const res = await fetch(`${BASE_URL}/api/learning/remedial-lesson`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +195,7 @@ const QuizSession = () => {
   const handleRemedialQuiz = async () => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/quiz/generate', {
+      const res = await fetch(`${BASE_URL}/api/quiz/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,6 +238,12 @@ const QuizSession = () => {
 
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        {newBadges.length > 0 && (
+          <BadgeCelebration 
+            badges={newBadges} 
+            onClose={() => setNewBadges([])} 
+          />
+        )}
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center border border-gray-100">
           <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <Award size={40} className="text-indigo-600" />

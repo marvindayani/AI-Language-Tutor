@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowLeft, BookOpen, Target, Brain, Plus, X, GraduationCap, Zap, CheckCircle2, Mic, MessageSquare, Lock, ChevronRight } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import BASE_URL from '../config';
 
 const LearningHub = () => {
   const { user, token } = useContext(AuthContext);
@@ -24,7 +25,7 @@ const LearningHub = () => {
 
   const fetchFocusAreas = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/learning/focus-areas', {
+      const res = await fetch(`${BASE_URL}/api/learning/focus-areas`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -39,7 +40,7 @@ const LearningHub = () => {
   const handleGenerateStarterPack = async () => {
     setGeneratingStarter(true);
     try {
-      const res = await fetch('http://localhost:5000/api/learning/starter-pack', {
+      const res = await fetch(`${BASE_URL}/api/learning/starter-pack`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -59,7 +60,7 @@ const LearningHub = () => {
     e.preventDefault();
     if (!newRule.trim()) return;
     try {
-      const res = await fetch('http://localhost:5000/api/learning/focus-areas', {
+      const res = await fetch(`${BASE_URL}/api/learning/focus-areas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ rule: newRule })
@@ -76,7 +77,7 @@ const LearningHub = () => {
     setLoadingLesson(true);
     setActiveLesson(null);
     try {
-      const res = await fetch('http://localhost:5000/api/learning/lesson', {
+      const res = await fetch(`${BASE_URL}/api/learning/lesson`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ rule })
@@ -93,7 +94,7 @@ const LearningHub = () => {
   const handleStartTargetedQuiz = async (rule) => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/quiz/generate', {
+      const res = await fetch(`${BASE_URL}/api/quiz/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ language: user?.language || 'English', level: user?.level || 'beginner', focusRule: rule })
@@ -110,7 +111,7 @@ const LearningHub = () => {
   const handleStartInteractivePractice = async (rule) => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/chat/session', {
+      const res = await fetch(`${BASE_URL}/api/chat/session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

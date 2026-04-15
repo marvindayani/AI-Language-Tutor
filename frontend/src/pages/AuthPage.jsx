@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Mail, Sparkles } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import BASE_URL from '../config';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -23,7 +24,7 @@ const AuthPage = () => {
 
     const endpoint = isLogin ? '/login' : '/register';
     try {
-      const res = await fetch(`http://localhost:5000/api/auth${endpoint}`, {
+      const res = await fetch(`${BASE_URL}/api/auth${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

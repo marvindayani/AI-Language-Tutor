@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Coffee, Plane, Briefcase, MapIcon, ArrowLeft } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import BASE_URL from '../config';
 
 const scenarios = [
   { id: 'cafe', title: 'At a Cafe', description: 'Order a coffee, ask about pastries, and handle the bill.', icon: <Coffee size={32} /> },
@@ -25,7 +26,7 @@ const RoleplaySetup = () => {
   const handleSelectScenario = async (scenarioTitle) => {
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/api/chat/session', {
+      const res = await fetch(`${BASE_URL}/api/chat/session`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

@@ -152,7 +152,7 @@ export const endSession = async (req, res) => {
 
       // ✅ NEW: Update Gamification (Streaks & Badges)
       updateStreak(user);
-      checkBadges(user);
+      const newBadges = checkBadges(user);
 
       await user.save();
 
@@ -192,6 +192,8 @@ export const endSession = async (req, res) => {
           console.error("❌ CEFR Assessment Trigger Error:", assessError);
         }
       }
+
+      return res.status(200).json({ session, user, newBadges });
     }
 
     res.status(200).json({ session });

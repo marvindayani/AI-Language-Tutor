@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { ArrowLeft, Book, MessageCircle, Star, TrendingUp, AlertTriangle, Target } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import BASE_URL from '../config';
 
 const Progress = () => {
   const { token, user: authUser } = useContext(AuthContext);
@@ -16,7 +17,7 @@ const Progress = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/user/stats', {
+        const res = await fetch(`${BASE_URL}/api/user/stats`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();

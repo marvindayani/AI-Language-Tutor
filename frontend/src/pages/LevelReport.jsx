@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Award, CheckCircle2, TrendingUp, Target, ArrowRight, Download, Share2, BookOpen, Star, Sparkles, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AuthContext } from '../context/AuthContext';
+import BASE_URL from '../config';
 
 const LevelReport = () => {
   const { id } = useParams();
@@ -17,7 +18,7 @@ const LevelReport = () => {
 
   const fetchAssessment = async () => {
     try {
-      const url = id ? `http://localhost:5000/api/assessment/${id}` : 'http://localhost:5000/api/assessment/latest';
+      const url = id ? `${BASE_URL}/api/assessment/${id}` : `${BASE_URL}/api/assessment/latest`;
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
