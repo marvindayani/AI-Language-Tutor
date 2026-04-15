@@ -175,8 +175,6 @@ const ActiveSession = () => {
   const handleDeleteSession = async (e, sessionId) => {
     e.stopPropagation(); // Prevent navigating to the session
     
-    if (!window.confirm("Are you sure you want to delete this chat history?")) return;
-
     try {
       const res = await fetch(`${BASE_URL}/api/chat/session/${sessionId}`, {
         method: 'DELETE',
