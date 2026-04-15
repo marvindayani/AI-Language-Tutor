@@ -41,7 +41,7 @@ export const submitQuiz = async (req, res) => {
     // Update user performance
     const user = await User.findById(quiz.userId);
     user.quizzesTaken += 1;
-    user.performanceScore += score * 10;
+    user.performanceScore += score * 2;
 
     // Dynamic Mastery: Auto-add topics and update progress instantly
     if (quiz.targetRule && typeof totalQuestions === 'number' && typeof correctAnswers === 'number') {
