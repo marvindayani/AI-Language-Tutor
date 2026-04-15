@@ -76,7 +76,7 @@ const RoleplaySetup = () => {
             </div>
           ))}
         </div>
-        {loading && <p className="text-center text-indigo-600 mt-8 font-medium animate-pulse">Setting up your immersive environment...</p>}
+        {/* {loading && <p className="text-center text-indigo-600 mt-8 font-medium animate-pulse">Setting up your immersive environment...</p>} */}
       </div>
     </div>
   );
