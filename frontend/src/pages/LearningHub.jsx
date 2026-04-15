@@ -14,6 +14,7 @@ const LearningHub = () => {
   const [curriculum, setCurriculum] = useState({});
   const [newRule, setNewRule] = useState('');
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [generatingStarter, setGeneratingStarter] = useState(false);
 
   const [activeLesson, setActiveLesson] = useState(null);
@@ -34,6 +35,8 @@ const LearningHub = () => {
       setCurriculum(data.curriculum || {});
     } catch (err) {
       console.error(err);
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -163,15 +166,23 @@ const LearningHub = () => {
               <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <Target size={16} /> Your Progress
               </h2>
-              <div className="flex items-center gap-4">
-                <div className="flex-1 bg-slate-100 h-3 rounded-full overflow-hidden">
-                  <div
-                    className="bg-emerald-500 h-full transition-all duration-1000"
-                    style={{ width: `${(currentLevel / Object.keys(curriculum).length) * 100}%` }}
-                  />
+              {!initialLoading && Object.keys(curriculum).length > 0 && (
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 bg-slate-100 h-3 rounded-full overflow-hidden">
+                    <div
+                      className="bg-emerald-500 h-full transition-all duration-1000"
+                      style={{ width: `${(currentLevel / Object.keys(curriculum).length) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-lg font-black text-slate-800">Level {currentLevel}</span>
                 </div>
-                <span className="text-lg font-black text-slate-800">Level {currentLevel}</span>
-              </div>
+              )}
+              {initialLoading && (
+                <div className="flex items-center gap-4 animate-pulse">
+                   <div className="flex-1 bg-slate-200 h-3 rounded-full" />
+                   <div className="w-10 bg-slate-200 h-6 rounded-md" />
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -225,19 +236,6 @@ const LearningHub = () => {
               })}
             </div>
 
-            {/* Starter Pack Button if empty */}
-            {focusAreas.length === 0 && (
-              <div className="p-8 text-center bg-white rounded-[24px] border border-slate-100 shadow-sm">
-                <p className="text-slate-500 font-medium text-sm mb-6">Initialize your learning path to begin your journey.</p>
-                <button
-                  onClick={handleGenerateStarterPack}
-                  disabled={generatingStarter}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
-                >
-                  {generatingStarter ? 'Initializing...' : <><Sparkles size={18} /> Start Your Journey</>}
-                </button>
-              </div>
-            )}
 
             {/* Custom Topics Section */}
             {focusAreas.some(fa => fa.level === 0) && (
