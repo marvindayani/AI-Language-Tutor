@@ -10,7 +10,7 @@ export default defineConfig({
     strictPort: false,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://ai-language-hdu0.onrender.com',
         changeOrigin: true,
         secure: false,
       },
