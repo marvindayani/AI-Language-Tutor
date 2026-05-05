@@ -2,11 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import chatRoutes from './routes/chat.js';
-import userRoutes from './routes/user.js';
-import quizRoutes from './routes/quiz.js';
-import authRoutes from './routes/auth.js';
-import assessmentRoutes from './routes/assessment.js';
+import chatRoutes from './routes/chat.routes.js';
+import userRoutes from './routes/user.routes.js';
+import quizRoutes from './routes/quiz.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import assessmentRoutes from './routes/assessment.routes.js';
 import learningRoutes from './routes/learning.routes.js';
 
 
@@ -50,7 +50,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/ai-language-tutor';
+const MONGO_URI = process.env.MONGO_URI;
 
 mongoose.connect(MONGO_URI)
   .then(() => {
