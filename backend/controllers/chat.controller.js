@@ -1,8 +1,8 @@
-import Session from '../models/Session.js';
-import Message from '../models/Message.js';
-import User from '../models/User.js';
-import Quiz from '../models/Quiz.js';
-import Assessment from '../models/Assessment.js';
+import Session from '../models/Session.model.js';
+import Message from '../models/Message.model.js';
+import User from '../models/User.model.js';
+import Quiz from '../models/Quiz.model.js';
+import Assessment from '../models/Assessment.model.js';
 import { generateTutorResponse, generateSessionSummary, generateCEFRAssessment } from '../services/ai.service.js';
 import { updateStreak, checkBadges } from '../utils/gamification.js';
 import { checkLevelUnlock } from './learning.controller.js';

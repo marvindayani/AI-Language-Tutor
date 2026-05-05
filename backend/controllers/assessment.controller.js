@@ -1,7 +1,7 @@
-import Assessment from '../models/Assessment.js';
-import User from '../models/User.js';
-import Session from '../models/Session.js';
-import Quiz from '../models/Quiz.js';
+import Assessment from '../models/Assessment.model.js';
+import User from '../models/User.model.js';
+import Session from '../models/Session.model.js';
+import Quiz from '../models/Quiz.model.js';
 import { generateCEFRAssessment } from '../services/ai.service.js';
 
 export const getAssessments = async (req, res) => {

@@ -1,5 +1,5 @@
-import Quiz from '../models/Quiz.js';
-import User from '../models/User.js';
+import Quiz from '../models/Quiz.model.js';
+import User from '../models/User.model.js';
 import { generateGrammarQuiz } from '../services/ai.service.js';
 import { updateStreak, checkBadges } from '../utils/gamification.js';
 import { checkLevelUnlock } from './learning.controller.js';

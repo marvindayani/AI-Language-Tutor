@@ -1,6 +1,6 @@
-import User from '../models/User.js';
-import Session from '../models/Session.js';
-import Quiz from '../models/Quiz.js';
+import User from '../models/User.model.js';
+import Session from '../models/Session.model.js';
+import Quiz from '../models/Quiz.model.js';
 
 export const getUserStats = async (req, res) => {
   try {
