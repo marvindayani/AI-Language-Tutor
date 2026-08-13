@@ -62,8 +62,18 @@ mongoose.connect(MONGO_URI)
   })
   .catch((err) => console.error('MongoDB connection error:', err));
 
-  app.get("/health", (req, res) => {
+ 
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    server: 'webserver1'
+  });
+});
+
+ app.get("/health", (req, res) => {
     res.status(200).json({
-        status: "ok"
+        status: "ok",
+        server: "webserver2"
     });
 });
+
