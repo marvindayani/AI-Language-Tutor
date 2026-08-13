@@ -17,7 +17,8 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "https://ai-language-tutor-chi.vercel.app",
-  "http://50.19.150.131"
+  "http://50.19.150.131",
+  "http://my-frontend-bucket.s3-website-us-east-1.amazonaws.com"
 ];
 
 app.use(cors({
