@@ -17,7 +17,7 @@ const allowedOrigins = [
   "https://ai-language-tutor-chi.vercel.app",
   "http://50.19.150.131",
   "http://my-frontend-bucket.s3-website-us-east-1.amazonaws.com",
-  "ai-tutor-alb-1711663768.us-east-1.elb.amazonaws.com"
+  "http://ai-tutor-alb-1711663768.us-east-1.elb.amazonaws.com"
 ];
 
 app.use(
