@@ -29,4 +29,30 @@
   .glass-card {
     @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-2xl;
   }
+
+  /* Dropdown Selector Styling */
+  .dropdown-select {
+    @apply appearance-none bg-white rounded-2xl px-4 py-2.5 pr-10 border border-slate-200 font-bold text-slate-900 text-sm cursor-pointer transition-all duration-200;
+    @apply hover:border-slate-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#1421AC]/20 focus:border-[#1421AC];
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M7 8L10 11L13 8' stroke='%231421AC' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    padding-right: 32px;
+  }
+
+  .dropdown-select:hover {
+    @apply border-[#1421AC]/40 bg-gradient-to-r from-indigo-50/30 to-transparent;
+  }
+
+  .dropdown-select:focus {
+    @apply border-[#1421AC] shadow-lg shadow-blue-900/10;
+  }
+
+  .dropdown-container {
+    @apply relative flex flex-col;
+  }
+
+  .dropdown-label {
+    @apply text-[10px] text-slate-500 font-black uppercase tracking-wider mb-1.5 block;
+  }
 }
