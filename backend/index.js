@@ -66,14 +66,6 @@ mongoose.connect(MONGO_URI)
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    server: 'webserver1'
+    server: process.env.SERVER_NAME
   });
 });
-
- app.get("/health", (req, res) => {
-    res.status(200).json({
-        status: "ok",
-        server: "webserver2"
-    });
-});
-
