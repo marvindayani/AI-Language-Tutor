@@ -1,15 +1,13 @@
-import express from 'express';
-import cors from 'cors';
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import chatRoutes from './routes/chat.routes.js';
-import userRoutes from './routes/user.routes.js';
-import quizRoutes from './routes/quiz.routes.js';
-import authRoutes from './routes/auth.routes.js';
-import assessmentRoutes from './routes/assessment.routes.js';
-import learningRoutes from './routes/learning.routes.js';
-
-
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import chatRoutes from "./routes/chat.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import quizRoutes from "./routes/quiz.routes.js";
+import authRoutes from "./routes/auth.routes.js";
+import assessmentRoutes from "./routes/assessment.routes.js";
+import learningRoutes from "./routes/learning.routes.js";
 
 dotenv.config();
 
@@ -18,55 +16,58 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://ai-language-tutor-chi.vercel.app",
   "http://50.19.150.131",
-  "http://my-frontend-bucket.s3-website-us-east-1.amazonaws.com"
+  "http://my-frontend-bucket.s3-website-us-east-1.amazonaws.com",
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      console.log("========== CORS CHECK ==========");
+      console.log("REQUEST ORIGIN:", origin);
 
-
-
-
+      if (!origin || allowedOrigins.includes(origin)) {
+        console.log("CORS ALLOWED");
+        callback(null, true);
+      } else {
+        console.log("CORS BLOCKED:", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 
-app.use('/api/chat', chatRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/quiz', quizRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/assessment', assessmentRoutes);
-app.use('/api/learning', learningRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/quiz", quizRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/assessment", assessmentRoutes);
+app.use("/api/learning", learningRoutes);
 
 // Error Default Route
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  res.status(500).json({ error: "Something went wrong!" });
 });
 
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 
-mongoose.connect(MONGO_URI)
+mongoose
+  .connect(MONGO_URI)
   .then(() => {
-    console.log('Connected to MongoDB');
+    console.log("Connected to MongoDB");
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   })
-  .catch((err) => console.error('MongoDB connection error:', err));
+  .catch((err) => console.error("MongoDB connection error:", err));
 
- 
-app.get('/health', (req, res) => {
+app.get("/health", (req, res) => {
   res.json({
-    status: 'ok',
-    server: process.env.SERVER_NAME
+    status: "ok",
+    server: process.env.SERVER_NAME,
   });
 });
