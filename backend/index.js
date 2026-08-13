@@ -16,7 +16,8 @@ dotenv.config();
 const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://ai-language-tutor-chi.vercel.app"
+  "https://ai-language-tutor-chi.vercel.app",
+  "http://50.19.150.131"
 ];
 
 app.use(cors({
