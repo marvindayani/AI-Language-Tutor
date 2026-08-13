@@ -61,3 +61,9 @@ mongoose.connect(MONGO_URI)
     });
   })
   .catch((err) => console.error('MongoDB connection error:', err));
+
+  app.get("/health", (req, res) => {
+    res.status(200).json({
+        status: "ok"
+    });
+});
