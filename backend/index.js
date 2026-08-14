@@ -8,6 +8,7 @@ import quizRoutes from "./routes/quiz.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import assessmentRoutes from "./routes/assessment.routes.js";
 import learningRoutes from "./routes/learning.routes.js";
+import profileRoutes from "./routes/profile.routes.js";
 
 dotenv.config();
 
@@ -17,7 +18,7 @@ const allowedOrigins = [
   "https://ai-language-tutor-chi.vercel.app",
   "http://50.19.150.131",
   "http://my-frontend-bucket.s3-website-us-east-1.amazonaws.com",
-  "http://ai-tutor-alb-1711663768.us-east-1.elb.amazonaws.com"
+  "http://ai-tutor-alb-1711663768.us-east-1.elb.amazonaws.com",
 ];
 
 app.use(
@@ -42,6 +43,7 @@ app.use(express.json());
 
 app.use("/api/chat", chatRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/profile", profileRoutes);
 app.use("/api/quiz", quizRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/assessment", assessmentRoutes);

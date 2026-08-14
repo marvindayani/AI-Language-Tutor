@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -9,11 +9,11 @@ export default defineConfig({
     port: 5173,
     strictPort: false,
     proxy: {
-      '/api': {
-        target: 'https://ai-language-hdu0.onrender.com',
+      "/api": {
+        target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,
       },
     },
   },
-})
+});

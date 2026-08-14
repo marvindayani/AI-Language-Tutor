@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { AuthContext } from "../context/AuthContext";
 import { motion } from "framer-motion";
+import UserCard from "../components/UserCard.jsx";
 import BASE_URL from "../config";
 
 const Dashboard = () => {
@@ -170,6 +171,17 @@ const Dashboard = () => {
       </nav>
 
       <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* User Profile Card */}
+        {user && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <UserCard user={user} />
+          </motion.div>
+        )}
+
         {/* Hero Section */}
         <section className="mb-12">
           <motion.div
